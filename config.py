@@ -9,3 +9,10 @@
 import os
 DB_CONFIG_FILE = os.path.dirname(__file__) + '/data/qs.db'
 DB_CONFIG_TABLE = 'QS2'
+
+urllist = [
+    {
+        'urls': ['https://www.qiushibaike.com/hot/%s' % n for n in ['page/'] + list(range(1, 13))],
+        'type': 'regular experssion',
+    }
+]
