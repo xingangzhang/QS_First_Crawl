@@ -22,6 +22,8 @@ import urllib
 import urllib2
 import re
 import hashlib
+import config
+import time
 from db.QSDataHelper import QSDataHelper
 
 
@@ -54,7 +56,7 @@ class Tool:
 
 class QSCrawl:
     def __init__(self):
-        self.pageIndex = 1
+        self.pageIndex = 0
         self.user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36'
         self.headers = {'User-Agent': self.user_agent}
         self.stories = []
@@ -63,10 +65,11 @@ class QSCrawl:
         self.dbhelper.create()
         self.dbindex = 0
         self.tool = Tool()
+        self.urls = []
+        self.hot = 0
 
-    def getPage(self, pageIndex):
+    def getPage(self, url):
         try:
-            url = 'https://www.qiushibaike.com/hot/page' + '/' +str(pageIndex)
             request = urllib2.Request(url, headers=self.headers)
             response = urllib2.urlopen(request)
             pageCode = response.read().decode('utf-8')
@@ -76,8 +79,8 @@ class QSCrawl:
                 print u"连接糗事百科失败,错误原因", why.reason
                 return None
 
-    def getPageItem(self, pageIndex):
-        pageCode = self.getPage(pageIndex)
+    def getPageItem(self, url):
+        pageCode = self.getPage(url)
         # print pageCode
         if not pageCode:
             print u"页面加载失败......"
@@ -101,12 +104,30 @@ class QSCrawl:
     def loadPage(self):
         if self.enable == True:
             if len(self.stories) < 2:
-                pageStories = self.getPageItem(self.pageIndex)
-                if pageStories:
-                    self.stories.append(pageStories)
-                    self.pageIndex += 1
+                url = self.getUrl(self.pageIndex)
+                print url
+                if url:
+                    pageStories = self.getPageItem(url)
+                    if pageStories:
+                        self.stories.append(pageStories)
+                        self.pageIndex += 1
+                else:
+                    self.enable = False
 
-    def getOneStory(self, pageStories, page):
+    def loadHot(self):
+        url = config.urlhot
+        self.hot += 1
+        print "抓取hot页面%d" % self.hot
+        pageStories = self.getPageItem(url)
+        for story in pageStories:
+            hashcode = hashlib.md5(story[2].encode('utf-8')).hexdigest()
+            if not self.dbhelper.fetchonebymd5(hashcode):
+                self.dbindex += 1
+                data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
+                self.dbhelper.insert(data)
+
+
+    def getOneStory(self, pageStories):
         for story in pageStories:
             self.loadPage()
             self.dbindex += 1
@@ -114,18 +135,41 @@ class QSCrawl:
             data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
             self.dbhelper.insert(data)
 
+
     def start(self):
-        # print u"正在读取糗事百科,按回车查看新段子，Q退出"
-        self.enable = True
-        self.loadPage()
-        newPage = 0
-        while self.enable:
-            if len(self.stories) > 0:
-                pageStories = self.stories[0]
-                newPage += 1
-                del self.stories[0]
-                self.getOneStory(pageStories, newPage)
+        if self.dbhelper.get_max_data_id() > 0:
+            # 爬取hot页面
+            time.sleep(360)
+            self.dbindex = self.dbhelper.get_max_data_id()
+            self.loadHot()
+        else:
+            # 第一次爬取
+            self.enable = True
+            self.loadPage()
+            while self.enable:
+                if len(self.stories) > 0:
+                    pageStories = self.stories[0]
+                    del self.stories[0]
+                    self.getOneStory(pageStories)
+            self.dbhelper.delete_repeated_items()
+
+
+    def initUrls(self):
+        for i in range(0, len(config.urllist), 1):
+            for url in config.urllist[i]['urls']:
+                self.urls.append(url)
+
+
+    def getUrl(self, index):
+        if 0 <= index < len(self.urls):
+            return self.urls[index]
+        return None
+
 
 if __name__ == '__main__':
+    print "QS run"
     spider = QSCrawl()
+    spider.initUrls()
     spider.start()
+    print "QS exit"
+

@@ -105,13 +105,21 @@ class QSDataHelper(SqliteHelper):
         sql = 'SELECT MAX(id) FROM {}'.format(DB_CONFIG_TABLE)
         return self.sqlhelper.excu_select(sql)
 
+    def fetchonebymd5(self, md5):
+        '''
+        get the item from the data by md5
+        :return:
+        '''
+        sql = 'SELECT * FROM {} WHERE md5 = ?'.format(DB_CONFIG_TABLE)
+        return self.sqlhelper.fetchone(sql, md5)
+
 if __name__ == '__main__':
     qs = QSDataHelper()
     qs.create()
     items = qs.get_diff_items_num()
     for item in items:
         print item
-    # qs.delete_repeated_items()
+    qs.delete_repeated_items()
     index = qs.get_max_data_id()
     print index
     # qs.delete_repeated_items()
