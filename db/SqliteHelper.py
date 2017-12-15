@@ -121,19 +121,10 @@ class SqliteHelper:
                 try:
                     d = (data,)
                     cu.execute(sql, d)
-                    content = cu.fetchall()
-                    if len(content) > 0:
-                        for item in content:
-                            for element in item:
-                                print element,
-                            print ''
-                    else:
-                        for element in content:
-                            print element,
-                        print ''
+                    content = cu.fetchone()
+                    return content
                 except sqlite3.Error as why:
                     print "fetch the data failed:", why.args[0]
-                    return
                 cu.close()
         else:
             print "sql is empty or None"

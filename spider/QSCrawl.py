@@ -126,7 +126,6 @@ class QSCrawl:
                 data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
                 self.dbhelper.insert(data)
 
-
     def getOneStory(self, pageStories):
         for story in pageStories:
             self.loadPage()
@@ -135,30 +134,28 @@ class QSCrawl:
             data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
             self.dbhelper.insert(data)
 
-
     def start(self):
-        if self.dbhelper.get_max_data_id() > 0:
-            # 爬取hot页面
-            time.sleep(360)
-            self.dbindex = self.dbhelper.get_max_data_id()
-            self.loadHot()
-        else:
-            # 第一次爬取
-            self.enable = True
-            self.loadPage()
-            while self.enable:
-                if len(self.stories) > 0:
-                    pageStories = self.stories[0]
-                    del self.stories[0]
-                    self.getOneStory(pageStories)
-            self.dbhelper.delete_repeated_items()
-
+        while True:
+            if self.dbhelper.get_max_data_id()[0][0] > 0:
+                # 爬取hot页面
+                time.sleep(360)
+                self.dbindex = int(self.dbhelper.get_max_data_id()[0][0])
+                self.loadHot()
+            else:
+                # 第一次爬取
+                self.enable = True
+                self.loadPage()
+                while self.enable:
+                    if len(self.stories) > 0:
+                        pageStories = self.stories[0]
+                        del self.stories[0]
+                        self.getOneStory(pageStories)
+                self.dbhelper.delete_repeated_items()
 
     def initUrls(self):
         for i in range(0, len(config.urllist), 1):
             for url in config.urllist[i]['urls']:
                 self.urls.append(url)
-
 
     def getUrl(self, index):
         if 0 <= index < len(self.urls):
@@ -172,4 +169,3 @@ if __name__ == '__main__':
     spider.initUrls()
     spider.start()
     print "QS exit"
-
