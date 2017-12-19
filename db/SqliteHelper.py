@@ -15,10 +15,11 @@
 """
 import sqlite3
 
-class SqliteHelper:
+
+class SqliteHelper():
     def __init__(self, dataFile):
         try:
-            self.conn = sqlite3.connect(dataFile)
+            self.conn = sqlite3.connect(dataFile, check_same_thread = False)
         except sqlite3.Error as e:
             print "connect the database failed:", e.args[0]
 
@@ -190,6 +191,7 @@ class SqliteHelper:
         except sqlite3.Error as why:
             print "excute the sql %s failed!" % sql
             print why.args[0]
+
     def excu(self, sql):
         '''
         execute the sql statement

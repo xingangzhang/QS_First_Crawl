@@ -119,12 +119,13 @@ class QSCrawl:
         self.hot += 1
         print "抓取hot页面%d" % self.hot
         pageStories = self.getPageItem(url)
-        for story in pageStories:
-            hashcode = hashlib.md5(story[2].encode('utf-8')).hexdigest()
-            if not self.dbhelper.fetchonebymd5(hashcode):
-                self.dbindex += 1
-                data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
-                self.dbhelper.insert(data)
+        if (pageStories):
+            for story in pageStories:
+                hashcode = hashlib.md5(story[2].encode('utf-8')).hexdigest()
+                if not self.dbhelper.fetchonebymd5(hashcode):
+                    self.dbindex += 1
+                    data = [(self.dbindex, hashcode, story[0], story[2], story[3])]
+                    self.dbhelper.insert(data)
 
     def getOneStory(self, pageStories):
         for story in pageStories:
@@ -138,9 +139,9 @@ class QSCrawl:
         while True:
             if self.dbhelper.get_max_data_id()[0][0] > 0:
                 # 爬取hot页面
-                time.sleep(360)
                 self.dbindex = int(self.dbhelper.get_max_data_id()[0][0])
                 self.loadHot()
+                time.sleep(360)
             else:
                 # 第一次爬取
                 self.enable = True

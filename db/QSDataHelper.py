@@ -14,6 +14,7 @@ from config import DB_CONFIG_TABLE
 class QSDataHelper(SqliteHelper):
     def __init__(self):
         self.sqlhelper = SqliteHelper(DB_CONFIG_FILE)
+        self.index = 0
 
     def __del__(self):
         del self
@@ -70,6 +71,7 @@ class QSDataHelper(SqliteHelper):
                 update_sql = 'DELETE FROM %s WHERE id = ?' % DB_CONFIG_TABLE
                 data = [(item['id'],), ]
                 self.sqlhelper.delete(update_sql, data)
+
     def get_diff_items_num(self):
         '''
         get the different item counts from the database
@@ -93,8 +95,8 @@ class QSDataHelper(SqliteHelper):
         '''
         sql = 'DELETE FROM {} WHERE id in ' \
               '(SELECT id FROM {})' \
-              'AND id not in (SELECT min(id) FROM {} GROUP by md5 HAVING COUNT(md5) > 1)'.\
-            format(DB_CONFIG_TABLE, DB_CONFIG_TABLE,DB_CONFIG_TABLE)
+              'AND id not in (SELECT min(id) FROM {} GROUP by md5 HAVING COUNT(md5) > 1)'. \
+            format(DB_CONFIG_TABLE, DB_CONFIG_TABLE, DB_CONFIG_TABLE)
         return self.sqlhelper.excu(sql)
 
     def get_max_data_id(self):
@@ -113,15 +115,38 @@ class QSDataHelper(SqliteHelper):
         sql = 'SELECT * FROM {} WHERE md5 = ?'.format(DB_CONFIG_TABLE)
         return self.sqlhelper.fetchone(sql, md5)
 
+    def get_a_item(self):
+        '''
+        return item from database order by id
+        :return:
+        '''
+        sql_get_ids = 'SELECT id FROM {} ORDER BY id ASC'.format(DB_CONFIG_TABLE)
+        sql_get_item = 'SELECT * FROM {} WHERE id = ?'.format(DB_CONFIG_TABLE)
+        try:
+            ids = []
+            ids = self.sqlhelper.excu_select(sql_get_ids)
+            self.total = len(ids)
+            id = self.index % self.total
+            item = self.sqlhelper.fetchone(sql_get_item, ids[id][0])
+            self.index += 1
+            return dict(id=item[0], md5=item[1], author=item[2], content=item[3])
+        except Exception, why:
+            print why.message
+
+qs = QSDataHelper()
+
+
 if __name__ == '__main__':
     qs = QSDataHelper()
-    qs.create()
-    items = qs.get_diff_items_num()
-    for item in items:
-        print item
-    qs.delete_repeated_items()
-    index = qs.get_max_data_id()
-    print index
+    qs.get_a_item()
+    qs.get_a_item()
+    # qs.create()
+    # items = qs.get_diff_items_num()
+    # for item in items:
+    #     print item
+    # qs.delete_repeated_items()
+    # index = qs.get_max_data_id()
+    # print index
     # qs.delete_repeated_items()
     # data = [(1, u'489efe77fc4ac08e', u'zxg', u'代课教师福克斯的合法开始', ''),
     #         (2, u'489efe77dfdfdfde', u'xgxcg', u'dfdsf的说法看激动', '')]
@@ -137,4 +162,3 @@ if __name__ == '__main__':
     # data2[0]['id'] = int(1)
     # qs.delete(data2)
     # qs.insert(data)
-
